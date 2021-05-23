@@ -39,7 +39,8 @@ SEARCH_DIR(.)
 MEMORY
 {
     rom (rx)    : ORIGIN = 0x00000000, LENGTH = 0x00004000 /* rom, 16384K */
-    ram (rwx)   : ORIGIN = 0x20000000, LENGTH = 0x00001000 /* ram, 4096K */
+    ram (rwx)   : ORIGIN = 0x20000000, LENGTH = 0x00000C00 /* ram, 3K */
+    noinit_ram (rwx): ORIGIN = 0x20000C00, LENGTH = 0x00000400 /* ram, 1K */
 }
 
 /* The stack size used by the application. NOTE: you need to adjust according to your application. */
@@ -100,6 +101,12 @@ SECTIONS
         _efixed = .;            /* End of text section */
     } > rom
 
+    .note.gnu.build-id :
+    {
+        __start_gnu_build_id_start = .;
+        KEEP(*(.note.gnu.build-id))
+    } > rom
+
     /* .ARM.exidx is sorted, so has to go in its own output section.  */
     PROVIDE_HIDDEN (__exidx_start = .);
     .ARM.exidx :
@@ -153,6 +160,8 @@ SECTIONS
         . = ALIGN(8);
         _estack = .;
     } > ram
+
+    .noinit (NOLOAD): { KEEP(*(*.noinit*)) } > noinit_ram
 
     . = ALIGN(4);
     _end = . ;

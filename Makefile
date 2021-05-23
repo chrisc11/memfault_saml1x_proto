@@ -57,6 +57,32 @@ INCLUDE_PATHS += \
   $(ROOT_DIR) \
   $(ROOT_DIR)/Packs/atmel/SAML10_DFP/1.0.158/include
 
+
+#
+# Pick up Memfault!
+#
+
+MEMFAULT_COMPONENTS := core util panics
+MEMFAULT_SDK_DIR ?= memfault-firmware-sdk
+MEMFAULT_SDK_ROOT = $(ROOT_DIR)/third_party/memfault/$(MEMFAULT_SDK_DIR)
+MEMFAULT_PORT_ROOT := $(ROOT_DIR)/third_party/memfault
+include $(MEMFAULT_SDK_ROOT)/makefiles/MemfaultWorker.mk
+
+SRC_FILES += \
+  $(MEMFAULT_COMPONENTS_SRCS) \
+  $(MEMFAULT_SDK_ROOT)/ports/panics/src/memfault_platform_ram_backed_coredump.c \
+  $(MEMFAULT_PORT_ROOT)/memfault_platform_port.c
+
+INCLUDE_PATHS +=  \
+  $(MEMFAULT_COMPONENTS_INC_FOLDERS) \
+  $(MEMFAULT_SDK_ROOT)/ports/include \
+  $(MEMFAULT_PORT_ROOT)
+
+CFLAGS += -Wl,--build-id
+
+# https://community.memfault.com/t/reproducible-firmware-builds-interrupt/112/12
+SRC_FILES := $(sort $(SRC_FILES))
+
 INCLUDES = $(foreach d, $(INCLUDE_PATHS), -I$d)
 
 # https://community.memfault.com/t/reproducible-firmware-builds-interrupt/112/12
@@ -84,7 +110,10 @@ CFLAGS += \
   -Wno-unused
 
 # Disable error flags that result in issues in atmel SDK
-CFLAGS += -Wno-bad-function-cast
+CFLAGS += \
+  -Wno-bad-function-cast \
+  -Wno-unused
+
 
 TARGET ?= memfault_proto
 LDSCRIPT = Device_Startup/saml10d14a_flash.ld
@@ -118,7 +147,7 @@ $(DEP_DIR):
 	@mkdir -p $(DEP_DIR)
 
 # Rebuild all objects anytime Makefile is edited
-$(OBJ_FILES): Makefile
+# $(OBJ_FILES): Makefile
 
 $(BUILD_DIR)/%.o: $(ROOT_DIR)/%.c | $(BUILD_DIR) $(DEP_DIR) $(FREERTOS_PORT_ROOT)
 	@echo "Compiling $*.c"
